@@ -1,100 +1,52 @@
 import mongoose from "mongoose";
 
-export interface IOrder {
-  _id ?: mongoose.Types.ObjectId,
-  user : mongoose.Types.ObjectId,
-  assignment ?: mongoose.Types.ObjectId,
-  items: [
-    {
-      grocery : mongoose.Types.ObjectId,
-      name    : string,
-      price   : string,
-      unit    : string,
-      image   : string, 
-      quantity: number,
-    }
-  ],
-  assignedDeliveryBoy ?: mongoose.Types.ObjectId | null,
-  totalAmount         : number,
-  paymentMethod       : "cod" | "online",
-  isPaid              : boolean,
-  address             : {
-    fullName          : string,
-    mobile            : string,
-    fullAddress       : string,
-    city              : string,
-    state             : string,
-    pincode           : string,
-    latitude          : number,
-    longitude         : number,
-  },
-  status            : "pending" | "out of delivery" | "delivered",
-  createdAt         ?: Date,
-  updatedAt         ?: Date,
+export interface IUser {
+  _id      : mongoose.Types.ObjectId;
+  name     : string;
+  email    : string;
+  password ?: string;
+  mobile   : string;
+  image    : string;
+  role     : "user" | "deliveryBoy" | "admin";
+   location: {
+    type: {
+        type: StringConstructor;
+        enum: string[];
+        default: string;
+    };
+    coordinates: {
+        type: NumberConstructor[];
+        default: number[];
+    };
+   },
+   socketId : string | null;
+   isOnline : boolean;
 }
 
-const OrderSchema = new mongoose.Schema<IOrder>({
-  user : {
-    type     : mongoose.Schema.Types.ObjectId,
-    ref      : "User",
-    required : true
-  },
-  assignment : { 
-    type     : mongoose.Schema.Types.ObjectId,
-    ref      : "DeliveryAssignmentModel",
-    default  : null
-  },
-  items : [
-    {
-      grocery : {
-        type     : mongoose.Schema.Types.ObjectId,
-        ref      : "User",
-        required : true
+const userSchema = new mongoose.Schema<IUser>({
+  name     : { type : String, required : true },
+  email    : { type : String, required : true, unique : true },
+  password : { type : String, required : false },
+  mobile   : { type : String, required : false },
+  role     : { type : String, enum : ["user", "deliveryBoy", "admin"], default : "user" },
+  image    : { type : String },
+  location : {
+      type : {
+        type    : String,
+        enum    : ["Point"],
+        default : "Point"
       },
-      name    : String,
-      price   : String,
-      unit    : String,
-      image   : String,
-      quantity: Number,
-    }
-  ],
-  assignedDeliveryBoy : {
-    type     : mongoose.Schema.Types.ObjectId,
-    ref      : "User",
-    default  : null
+      coordinates : {
+        type    : [Number], // latitude and longitude
+        default : [0,0]
+      }
   },
-  isPaid        : {
-    type     : Boolean,
-    default  : false,
-    required : true
-  },
-  paymentMethod : {
-    type     : String,
-    enum     : ["cod", "online"],
-    default  : "cod",
-    required : true
-  },
-  totalAmount :  Number,
-  address       : {
-    fullName    : String,
-    mobile      : String,
-    fullAddress : String,
-    city        : String,
-    state       : String,
-    pincode     : String,
-    latitude    : Number,
-    longitude   : Number,
-  },
-  status : {
-    type     : String,
-    enum     : ["pending", "out of delivery", "delivered"],
-    default  : "pending",
-    required : true
-  },
-}, {
-  timestamps : true,
-})
+  socketId : { type : String, default : null },
+  isOnline : { type : Boolean, default : false }
+},{ timestamps : true }) // createdAt and updatedAt 
 
-const OrderModel = mongoose.models.OrderModel || mongoose.model("OrderModel", OrderSchema)
+userSchema.index({ location: "2dsphere" })
 
-export default OrderModel
+const UserModel = mongoose.models.User || mongoose.model<IUser>("User", userSchema)
+
+export default UserModel

@@ -31,6 +31,9 @@ export interface IOrder {
   status            : "pending" | "out of delivery" | "delivered",
   createdAt         ?: Date,
   updatedAt         ?: Date,
+  deliveryOtp         : string | null,
+  deliveryOtpVerification : Boolean,
+  deliveredAt         : Date | null,
 }
 
 const OrderSchema = new mongoose.Schema<IOrder>({
@@ -58,6 +61,18 @@ const OrderSchema = new mongoose.Schema<IOrder>({
       quantity: Number,
     }
   ],
+  deliveryOtp : {
+    type     : String,
+    default  : null
+  },
+  deliveryOtpVerification : {
+    type     : Boolean,
+    default  : false
+  },
+  deliveredAt : {
+    type     : Date,
+    default  : null
+  },
   assignedDeliveryBoy : {
     type     : mongoose.Schema.Types.ObjectId,
     ref      : "User",
@@ -95,6 +110,9 @@ const OrderSchema = new mongoose.Schema<IOrder>({
   timestamps : true,
 })
 
-const OrderModel = mongoose.models.OrderModel || mongoose.model("OrderModel", OrderSchema)
+const OrderModel =
+  mongoose.models.Order ||
+  mongoose.model("Order", OrderSchema)
+
 
 export default OrderModel
