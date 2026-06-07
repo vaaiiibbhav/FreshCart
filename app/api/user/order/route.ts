@@ -1,5 +1,6 @@
 import connectDB from "@/app/lib/db"
 import emitEventHandler from "@/app/lib/emitEventHandler"
+import { auth } from "@/auth"
 import OrderModel from "@/models/order.model"
 import UserModel from "@/models/user.model"
 import { NextRequest, NextResponse } from "next/server"
@@ -7,6 +8,13 @@ import { NextRequest, NextResponse } from "next/server"
 export async function POST(req: NextRequest) {
   try {
     await connectDB()
+
+    const session = await auth()
+    if (!session || !session.user || !session.user.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
+    const activeUserId = session.user.id
 
     const {
       userId,
@@ -17,7 +25,6 @@ export async function POST(req: NextRequest) {
     } = await req.json()
 
     if (
-      !userId ||
       !Array.isArray(items) ||
       items.length === 0 ||
       !paymentMethod ||
@@ -51,7 +58,7 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const user = await UserModel.findById(userId)
+    const user = await UserModel.findById(activeUserId)
     if (!user) {
       return NextResponse.json(
         { error: "User not found" },
@@ -60,12 +67,27 @@ export async function POST(req: NextRequest) {
     }
 
     const newOrder = await OrderModel.create({
-      user: userId,
+      user: activeUserId,
+      userId: activeUserId,
       items,
       paymentMethod,
       totalAmount,
-      address,
+      address: {
+        fullName: address.fullName,
+        mobile: address.mobile,
+        phone: address.mobile || address.phone || "",
+        fullAddress: address.address || address.fullAddress || "",
+        city: address.city,
+        state: address.state,
+        pincode: address.pincode,
+        latitude: latitude,
+        longitude: longitude,
+      },
       status: "pending",
+      isPaid: false,
+      deliveryOtp: null,
+      deliveryOtpVerification: false,
+      deliveredAt: null,
     })
 
     emitEventHandler("new-order", newOrder).catch((err) =>
@@ -76,10 +98,10 @@ export async function POST(req: NextRequest) {
       { message: "Order placed successfully", newOrder },
       { status: 201 }
     )
-  } catch (err) {
-    console.error(err)
+  } catch (error: any) {
+    console.error("ORDER_CREATION_CRASH_LOG:", error)
     return NextResponse.json(
-      { error: "Place order error" },
+      { error: error.message },
       { status: 500 }
     )
   }

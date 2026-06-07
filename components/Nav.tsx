@@ -18,7 +18,7 @@ import {
   ListOrdered,
   X,
 } from "lucide-react"
-import { signOut } from "next-auth/react"
+import { signOut, useSession } from "next-auth/react"
 import { RootState } from "@/redux/store"
 import { useSelector } from "react-redux"
 
@@ -27,24 +27,34 @@ import { useSelector } from "react-redux"
 interface IUser {
   id: string
   name: string
-  role: "user" | "deliveryBoy" | "admin"
-  image?: string
+  role: "user" | "deliveryBoy" | "admin" | "cook"
+  image?: string | null
+  mobile?: string | null
 }
 
 /* ================= COMPONENT ================= */
 
-export default function Nav({ user }: { user: IUser }) {
+export default function Nav({ user }: { user: IUser | null }) {
   const router = useRouter()
   const profileRef = useRef<HTMLDivElement | null>(null)
   const lastScrollY = useRef(0)
   const { cartData } = useSelector((state: RootState) => state.cart)
+  const { data: session } = useSession()
 
   const [visible, setVisible] = useState(true)
   const [profileOpen, setProfileOpen] = useState(false)
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
   const [mounted, setMounted] = useState(false)
 
-  useEffect(() => setMounted(true), [])
+  useEffect(() => {
+    let active = true
+    setTimeout(() => {
+      if (active) setMounted(true)
+    }, 0)
+    return () => {
+      active = false
+    }
+  }, [])
 
   /* ---------- SCROLL HIDE ---------- */
   useEffect(() => {
@@ -84,7 +94,7 @@ export default function Nav({ user }: { user: IUser }) {
             UrbanGrocer
           </Link>
 
-          {user.role === "user" && (
+          {(!user || user.role === "user") && (
             <div className="hidden md:flex flex-1 justify-center px-6">
               <div className="flex w-full max-w-xl items-center bg-gray-100 rounded-lg px-3 py-2">
                 <Search className="w-4 h-4 text-gray-400 mr-2" />
@@ -97,7 +107,35 @@ export default function Nav({ user }: { user: IUser }) {
           )}
 
           <div className="flex items-center gap-2">
-            {user.role === "admin" && (
+            {/* Strict Session Role checks - High Visibility Buttons */}
+            {session?.user?.role === "admin" && (
+              <Link
+                href="/admin/manage-orders"
+                className="mr-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-extrabold shadow-md hover:shadow-lg transition-all animate-pulse-subtle"
+              >
+                Admin Dashboard
+              </Link>
+            )}
+
+            {session?.user?.role === "cook" && (
+              <Link
+                href="/cook"
+                className="mr-2 px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg text-xs font-extrabold shadow-md hover:shadow-lg transition-all"
+              >
+                Kitchen Dashboard
+              </Link>
+            )}
+
+            {session?.user?.role === "deliveryBoy" && (
+              <Link
+                href="/delivery"
+                className="mr-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-extrabold shadow-md hover:shadow-lg transition-all"
+              >
+                Rider Dashboard
+              </Link>
+            )}
+
+            {user?.role === "admin" && (
               <div className="hidden md:flex items-center gap-2">
                 <NavAction href="/admin/add-grocery" icon={<PlusCircle />} label="Add" />
                 <NavAction href="/admin/groceries" icon={<Boxes />} label="Groceries" />
@@ -105,7 +143,7 @@ export default function Nav({ user }: { user: IUser }) {
               </div>
             )}
 
-            {user.role === "admin" && (
+            {user?.role === "admin" && (
               <button
                 onClick={() => setMobileSidebarOpen(true)}
                 className="md:hidden h-9 w-9 rounded-full bg-gray-100 flex items-center justify-center"
@@ -114,7 +152,7 @@ export default function Nav({ user }: { user: IUser }) {
               </button>
             )}
 
-            {user.role === "user" && (
+            {(!user || user.role === "user") && (
               <button
                 onClick={() => router.push("/user/cart")}
                 className="
@@ -154,80 +192,92 @@ export default function Nav({ user }: { user: IUser }) {
               </button>
             )}
 
-            <div ref={profileRef} className="relative">
-              <button
-                onClick={() => setProfileOpen(p => !p)}
-                className="h-9 w-9 rounded-full bg-gray-100 flex items-center justify-center"
-              >
-                {user.image ? (
-                  <Image src={user.image} alt={user.name} width={32} height={32} className="rounded-full" />
-                ) : (
-                  <User className="w-4 h-4" />
-                )}
-              </button>
+            {user ? (
+              <div ref={profileRef} className="relative">
+                <button
+                  onClick={() => setProfileOpen(p => !p)}
+                  className="h-9 w-9 rounded-full bg-gray-100 flex items-center justify-center cursor-pointer"
+                >
+                  {user.image ? (
+                    <Image src={user.image} alt={user.name} width={32} height={32} className="rounded-full" />
+                  ) : (
+                    <User className="w-4 h-4" />
+                  )}
+                </button>
 
-              <AnimatePresence>
-                {profileOpen && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 8, scale: 0.98 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: 8, scale: 0.98 }}
-                    transition={{ duration: 0.18 }}
-                    className="
-        absolute right-0 mt-3 w-56
-        bg-white rounded-2xl
-        border shadow-xl
-        overflow-hidden
-      "
-                  >
-                    {/* USER INFO */}
-                    <div className="px-4 py-3 bg-gray-50 border-b">
-                      <p className="text-sm font-semibold text-gray-800">{user.name}</p>
-                      <p className="text-xs text-gray-500 capitalize">{user.role}</p>
-                    </div>
+                <AnimatePresence>
+                  {profileOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 8, scale: 0.98 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 8, scale: 0.98 }}
+                      transition={{ duration: 0.18 }}
+                      className="
+          absolute right-0 mt-3 w-56
+          bg-white rounded-2xl
+          border shadow-xl
+          overflow-hidden
+        "
+                    >
+                      {/* USER INFO */}
+                      <div className="px-4 py-3 bg-gray-50 border-b">
+                        <p className="text-sm font-semibold text-gray-800">{user.name}</p>
+                        <p className="text-xs text-gray-500 capitalize">{user.role}</p>
+                      </div>
 
-                    {/* USER ACTIONS */}
-                    {user.role === "user" && (
-                      <Link
-                        href="/user/my-orders"
-                        onClick={() => setProfileOpen(false)}
+                      {/* USER ACTIONS */}
+                      {user.role === "user" && (
+                        <Link
+                          href="/user/my-orders"
+                          onClick={() => setProfileOpen(false)}
+                          className="
+              flex items-center gap-3 px-4 py-3
+              text-sm font-medium text-gray-700
+              hover:bg-emerald-50 hover:text-emerald-700
+              transition
+            "
+                        >
+                          <PackageCheck className="w-4 h-4" />
+                          My Orders
+                        </Link>
+                      )}
+
+                      {/* LOGOUT */}
+                      <button
+                        onClick={() => signOut({ callbackUrl: "/login" })}
                         className="
-            flex items-center gap-3 px-4 py-3
-            text-sm font-medium text-gray-700
-            hover:bg-emerald-50 hover:text-emerald-700
+            w-full flex items-center gap-3 px-4 py-3
+            text-sm font-medium text-red-600
+            hover:bg-red-50
             transition
           "
                       >
-                        <PackageCheck className="w-4 h-4" />
-                        My Orders
-                      </Link>
-                    )}
-
-                    {/* LOGOUT */}
-                    <button
-                      onClick={() => signOut({ callbackUrl: "/login" })}
-                      className="
-          w-full flex items-center gap-3 px-4 py-3
-          text-sm font-medium text-red-600
-          hover:bg-red-50
-          transition
-        "
-                    >
-                      <LogOut className="w-4 h-4" />
-                      Log Out
-                    </button>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
-            </div>
+                        <LogOut className="w-4 h-4" />
+                        Log Out
+                      </button>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            ) : (
+              <Link
+                href="/login"
+                className="
+                  flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold
+                  bg-indigo-600 hover:bg-indigo-700 text-white transition shadow-sm
+                "
+              >
+                <User className="w-3.5 h-3.5" />
+                Log In
+              </Link>
+            )}
           </div>
         </nav>
       </motion.header>
 
       {/* ================= MOBILE ADMIN SIDEBAR ================= */}
       {mounted &&
-        user.role === "admin" &&
+        user?.role === "admin" &&
         createPortal(
           <AnimatePresence>
             {mobileSidebarOpen && (
@@ -307,7 +357,13 @@ export default function Nav({ user }: { user: IUser }) {
 
 /* ================= UI HELPERS ================= */
 
-function NavAction({ href, icon, label }: any) {
+interface NavActionProps {
+  href: string
+  icon: React.ReactNode
+  label: string
+}
+
+function NavAction({ href, icon, label }: NavActionProps) {
   return (
     <Link
       href={href}
@@ -319,7 +375,13 @@ function NavAction({ href, icon, label }: any) {
   )
 }
 
-function SidebarItem({ href, icon, label }: any) {
+interface SidebarItemProps {
+  href: string
+  icon: React.ReactNode
+  label: string
+}
+
+function SidebarItem({ href, icon, label }: SidebarItemProps) {
   return (
     <Link
       href={href}

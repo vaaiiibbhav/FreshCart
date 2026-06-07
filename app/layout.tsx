@@ -27,7 +27,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body>
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen bg-[#F8FAFF] text-zinc-900`}>
           <Provider>
             <StoreProvider>
               <InitUser />

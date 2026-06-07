@@ -1,7 +1,7 @@
 "use client"
 
-import { Bike, User, UserCog, Check } from "lucide-react"
-import { motion } from "motion/react"
+import { Bike, User, UserCog, Check, ChefHat } from "lucide-react"
+import { motion, type Variants } from "motion/react"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import { useSession } from "next-auth/react"
@@ -10,9 +10,10 @@ const ROLES = [
   { id: "admin", label: "Admin", icon: UserCog },
   { id: "user", label: "User", icon: User },
   { id: "deliveryBoy", label: "Delivery Partner", icon: Bike },
+  { id: "cook", label: "Chef / Cook", icon: ChefHat },
 ]
 
-const container = {
+const container: Variants = {
   hidden: { opacity: 0 },
   show: {
     opacity: 1,
@@ -23,7 +24,7 @@ const container = {
   },
 }
 
-const item = {
+const item: Variants = {
   hidden: { opacity: 0, y: -20 },
   show: {
     opacity: 1,
@@ -103,11 +104,9 @@ export default function EditRoleMobile() {
 
         <motion.div
           variants={container}
-          className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-10"
+          className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-10 max-w-4xl mx-auto"
         >
-          {ROLES
-            .filter(role => !(adminExists && role.id === "admin"))
-            .map((role) => {
+          {ROLES.map((role) => {
               const Icon = role.icon
               const isSelected = selectedRole === role.id
 

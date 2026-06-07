@@ -30,6 +30,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json(data)
 
   } catch (error) {
+    console.error("Search failed:", error)
     return NextResponse.json(
       { error: "Search failed" },
       { status: 500 }

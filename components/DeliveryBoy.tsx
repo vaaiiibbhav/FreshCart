@@ -1,186 +1,423 @@
-import os
-import sys
+"use client"
 
-from networksecurity.exception.exception import NetworkSecurityException 
-from networksecurity.logging.logger import logging
+import axios from "axios"
+import { useEffect, useState } from "react"
+import DeliveryBoyDashboard, { Assignment } from "./DeliveryBoyDashboard"
+import DeliveryChat from "./DeliveryChat"
+import { getSocket } from "@/app/lib/socket"
+import {
+  MapPin,
+  User,
+  Phone,
+  Lock,
+  X,
+  CheckCircle2,
+  AlertTriangle,
+  Loader2,
+} from "lucide-react"
+import { motion } from "motion/react"
 
-from networksecurity.entity.artifact_entity import DataTransformationArtifact,ModelTrainerArtifact
-from networksecurity.entity.config_entity import ModelTrainerConfig
+interface ActiveAssignment extends Assignment {
+  assignedTo: string
+}
 
+export default function DeliveryBoy() {
+  const [assignments, setAssignments] = useState<Assignment[]>([])
+  const [loading, setLoading] = useState(true)
+  
+  // Active assignment state
+  const [activeAssignment, setActiveAssignment] = useState<ActiveAssignment | null>(null)
+  const [checkingActive, setCheckingActive] = useState(true)
+  
+  // OTP Modal state
+  const [isOtpModalOpen, setIsOtpModalOpen] = useState(false)
+  const [otp, setOtp] = useState<string[]>(Array(6).fill(""))
+  const [otpStatus, setOtpStatus] = useState<"idle" | "verifying" | "success" | "failure">("idle")
+  const [errorMessage, setErrorMessage] = useState("")
 
+  const checkActiveOrder = async () => {
+    try {
+      setCheckingActive(true)
+      const res = await axios.get("/api/delivery/current-order")
+      if (res.data?.active && res.data?.assignment) {
+        setActiveAssignment(res.data.assignment)
+      } else {
+        setActiveAssignment(null)
+      }
+    } catch (err) {
+      console.error("Failed to check active order:", err)
+      setActiveAssignment(null)
+    } finally {
+      setCheckingActive(false)
+    }
+  }
 
-from networksecurity.utils.ml_utils.model.estimator import NetworkModel
-from networksecurity.utils.main_utils.utils import save_object,load_object
-from networksecurity.utils.main_utils.utils import load_numpy_array_data,evaluate_models
-from networksecurity.utils.ml_utils.metric.classification_metric import get_classification_score
+  const fetchAssignments = async () => {
+    try {
+      setLoading(true)
+      const res = await axios.get("/api/delivery/get-assignments")
+      setAssignments(Array.isArray(res.data) ? res.data : [])
+    } catch {
+      setAssignments([])
+    } finally {
+      setLoading(false)
+    }
+  }
 
-from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import r2_score
-from sklearn.neighbors import KNeighborsClassifier
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.ensemble import (
-    AdaBoostClassifier,
-    GradientBoostingClassifier,
-    RandomForestClassifier,
-)
-import mlflow
-from urllib.parse import urlparse
+  useEffect(() => {
+    checkActiveOrder()
+    fetchAssignments()
+  }, [])
 
-import dagshub
-#dagshub.init(repo_owner='vaibhav30verma', repo_name='Network-Security-System', mlflow=True)
+  // Listen to new-assignment socket broadcast reactively
+  useEffect(() => {
+    const socket = getSocket()
 
-import dagshub
-dagshub.init(repo_owner='thevaibhavverma10', repo_name='Network-Security-System', mlflow=True)
+    const handleNewAssignment = (data: { deliveryAssignment?: Assignment }) => {
+      const newAssignment = data?.deliveryAssignment
+      if (newAssignment) {
+        setAssignments((prev) => {
+          if (prev.some((a) => a._id === newAssignment._id)) {
+            return prev
+          }
+          return [...prev, newAssignment]
+        })
+      }
+    }
 
-os.environ["MLFLOW_TRACKING_URI"]="https://dagshub.com/thevaibhavverma10/Network-Security-System"
-os.environ["MLFLOW_TRACKING_USERNAME"]="thevaibhavverma10"
-os.environ["MLFLOW_TRACKING_PASSWORD"]="7805ee7a8afe8f3b7163ff2e6eec151432fb70244"
+    socket.on("new-assignment", handleNewAssignment)
 
+    return () => {
+      socket.off("new-assignment", handleNewAssignment)
+    }
+  }, [])
 
+  const handleAcceptSuccess = async () => {
+    await checkActiveOrder()
+    await fetchAssignments()
+  }
 
+  const handleOtpChange = (val: string, index: number) => {
+    if (val && isNaN(Number(val))) return
+    const newOtp = [...otp]
+    newOtp[index] = val.slice(-1)
+    setOtp(newOtp)
 
+    if (val && index < 5) {
+      const nextInput = document.getElementById(`otp-input-${index + 1}`)
+      nextInput?.focus()
+    }
+  }
 
-class ModelTrainer:
-    def __init__(self,model_trainer_config:ModelTrainerConfig,data_transformation_artifact:DataTransformationArtifact):
-        try:
-            self.model_trainer_config=model_trainer_config
-            self.data_transformation_artifact=data_transformation_artifact
-        except Exception as e:
-            raise NetworkSecurityException(e,sys)
-        
-    def track_mlflow(self,best_model,classificationmetric):
-        mlflow.set_registry_uri("https://dagshub.com/krishnaik06/networksecurity.mlflow")
-        tracking_url_type_store = urlparse(mlflow.get_tracking_uri()).scheme
-        with mlflow.start_run():
-            f1_score=classificationmetric.f1_score
-            precision_score=classificationmetric.precision_score
-            recall_score=classificationmetric.recall_score
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, index: number) => {
+    if (e.key === "Backspace") {
+      if (!otp[index] && index > 0) {
+        const prevInput = document.getElementById(`otp-input-${index - 1}`)
+        prevInput?.focus()
+        const newOtp = [...otp]
+        newOtp[index - 1] = ""
+        setOtp(newOtp)
+      } else {
+        const newOtp = [...otp]
+        newOtp[index] = ""
+        setOtp(newOtp)
+      }
+    }
+  }
 
-            
+  const handleVerifyOtp = async () => {
+    const otpCode = otp.join("")
+    if (otpCode.length !== 6 || !activeAssignment) return
 
-            mlflow.log_metric("f1_score",f1_score)
-            mlflow.log_metric("precision",precision_score)
-            mlflow.log_metric("recall_score",recall_score)
-            mlflow.sklearn.log_model(best_model,"model")
-            # Model registry does not work with file store
-            if tracking_url_type_store != "file":
+    try {
+      setOtpStatus("verifying")
+      const orderId = activeAssignment.order._id
+      await axios.post("/api/otp/verify", {
+        orderId,
+        otp: otpCode,
+      })
 
-                # Register the model
-                # There are other ways to use the Model Registry, which depends on the use case,
-                # please refer to the doc for more information:
-                # https://mlflow.org/docs/latest/model-registry.html#api-workflow
-                mlflow.sklearn.log_model(best_model, "model", registered_model_name=best_model)
-            else:
-                mlflow.sklearn.log_model(best_model, "model")
+      // Notify other clients via socket of order completion
+      const socket = getSocket()
+      socket.emit("updateLocation", {
+        userId: activeAssignment.assignedTo,
+        latitude: 0,
+        longitude: 0,
+      })
 
+      setOtpStatus("success")
+    } catch (err: unknown) {
+      setOtpStatus("failure")
+      const errMsg = axios.isAxiosError(err) 
+        ? err.response?.data?.message 
+        : (err instanceof Error ? err.message : "Invalid OTP code. Please try again.")
+      setErrorMessage(errMsg || "Invalid OTP code. Please try again.")
+    }
+  }
 
-        
-    def train_model(self,X_train,y_train,x_test,y_test):
-        models = {
-                "Random Forest": RandomForestClassifier(verbose=1),
-                "Decision Tree": DecisionTreeClassifier(),
-                "Gradient Boosting": GradientBoostingClassifier(verbose=1),
-                "Logistic Regression": LogisticRegression(verbose=1),
-                "AdaBoost": AdaBoostClassifier(),
-            }
-        params={
-            "Decision Tree": {
-                'criterion':['gini', 'entropy', 'log_loss'],
-                # 'splitter':['best','random'],
-                # 'max_features':['sqrt','log2'],
-            },
-            "Random Forest":{
-                # 'criterion':['gini', 'entropy', 'log_loss'],
-                
-                # 'max_features':['sqrt','log2',None],
-                'n_estimators': [8,16,32,128,256]
-            },
-            "Gradient Boosting":{
-                # 'loss':['log_loss', 'exponential'],
-                'learning_rate':[.1,.01,.05,.001],
-                'subsample':[0.6,0.7,0.75,0.85,0.9],
-                # 'criterion':['squared_error', 'friedman_mse'],
-                # 'max_features':['auto','sqrt','log2'],
-                'n_estimators': [8,16,32,64,128,256]
-            },
-            "Logistic Regression":{},
-            "AdaBoost":{
-                'learning_rate':[.1,.01,.001],
-                'n_estimators': [8,16,32,64,128,256]
-            }
-            
-        }
-        model_report:dict=evaluate_models(X_train=X_train,y_train=y_train,X_test=x_test,y_test=y_test,
-                                          models=models,param=params)
-        
-        ## To get best model score from dict
-        best_model_score = max(sorted(model_report.values()))
+  const closeModal = () => {
+    setIsOtpModalOpen(false)
+    setOtp(Array(6).fill(""))
+    setOtpStatus("idle")
+    setErrorMessage("")
+  }
 
-        ## To get best model name from dict
+  const handleSuccessClose = async () => {
+    closeModal()
+    await checkActiveOrder()
+    await fetchAssignments()
+  }
 
-        best_model_name = list(model_report.keys())[
-            list(model_report.values()).index(best_model_score)
-        ]
-        best_model = models[best_model_name]
-        y_train_pred=best_model.predict(X_train)
+  const renderOtpInputView = () => (
+    <div className="flex flex-col items-center text-center space-y-5">
+      <div className="w-12 h-12 bg-emerald-50 rounded-full flex items-center justify-center text-emerald-600">
+        <Lock size={22} />
+      </div>
+      
+      <div>
+        <h3 className="text-lg font-bold text-zinc-950">Verify Order Delivery</h3>
+        <p className="text-sm text-zinc-500 mt-1 max-w-xs">
+          Enter the 6-digit OTP code provided by the customer to confirm delivery.
+        </p>
+      </div>
 
-        classification_train_metric=get_classification_score(y_true=y_train,y_pred=y_train_pred)
-        
-        ## Track the experiements with mlflow
-        self.track_mlflow(best_model,classification_train_metric)
+      <div className="flex gap-2 justify-center my-2">
+        {otp.map((digit, idx) => (
+          <input
+            key={idx}
+            id={`otp-input-${idx}`}
+            type="text"
+            pattern="[0-9]*"
+            inputMode="numeric"
+            maxLength={1}
+            value={digit}
+            onChange={(e) => handleOtpChange(e.target.value, idx)}
+            onKeyDown={(e) => handleKeyDown(e, idx)}
+            className="w-12 h-12 text-center text-lg font-bold border border-zinc-200 rounded-xl focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none transition"
+          />
+        ))}
+      </div>
 
+      <button
+        onClick={handleVerifyOtp}
+        disabled={otp.join("").length !== 6}
+        className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 text-white font-semibold py-3 rounded-xl transition shadow-md"
+      >
+        Verify & Deliver
+      </button>
+    </div>
+  )
 
-        y_test_pred=best_model.predict(x_test)
-        classification_test_metric=get_classification_score(y_true=y_test,y_pred=y_test_pred)
+  const renderOtpVerifyingView = () => (
+    <div className="flex flex-col items-center text-center py-6 space-y-4">
+      <Loader2 className="animate-spin text-emerald-600" size={40} />
+      <div>
+        <h3 className="text-lg font-bold text-zinc-950">Verifying OTP</h3>
+        <p className="text-sm text-zinc-500 mt-1">
+          Validating code and processing delivery receipt...
+        </p>
+      </div>
+    </div>
+  )
 
-        self.track_mlflow(best_model,classification_test_metric)
+  const renderOtpSuccessView = () => (
+    <div className="flex flex-col items-center text-center space-y-5 py-4">
+      <div className="w-14 h-14 bg-emerald-50 rounded-full flex items-center justify-center text-emerald-600">
+        <CheckCircle2 size={32} />
+      </div>
 
-        preprocessor = load_object(file_path=self.data_transformation_artifact.transformed_object_file_path)
-            
-        model_dir_path = os.path.dirname(self.model_trainer_config.trained_model_file_path)
-        os.makedirs(model_dir_path,exist_ok=True)
+      <div>
+        <h3 className="text-xl font-bold text-emerald-700">Delivery Completed!</h3>
+        <p className="text-sm text-zinc-500 mt-1.5 max-w-xs">
+          {"OTP verified successfully. An itemized invoice has been dispatched to the customer's registered email address."}
+        </p>
+      </div>
 
-        Network_Model=NetworkModel(preprocessor=preprocessor,model=best_model)
-        save_object(self.model_trainer_config.trained_model_file_path,obj=NetworkModel)
-        #model pusher
-        save_object("final_model/model.pkl",best_model)
-        
+      <button
+        onClick={handleSuccessClose}
+        className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 rounded-xl transition shadow-md"
+      >
+        Return to Dashboard
+      </button>
+    </div>
+  )
 
-        ## Model Trainer Artifact
-        model_trainer_artifact=ModelTrainerArtifact(trained_model_file_path=self.model_trainer_config.trained_model_file_path,
-                             train_metric_artifact=classification_train_metric,
-                             test_metric_artifact=classification_test_metric
-                             )
-        logging.info(f"Model trainer artifact: {model_trainer_artifact}")
-        return model_trainer_artifact
+  const renderOtpFailureView = () => (
+    <div className="flex flex-col items-center text-center space-y-5 py-4">
+      <div className="w-14 h-14 bg-rose-50 rounded-full flex items-center justify-center text-rose-600">
+        <AlertTriangle size={32} />
+      </div>
 
+      <div>
+        <h3 className="text-xl font-bold text-rose-700">Verification Failed</h3>
+        <p className="text-sm text-zinc-500 mt-1.5 max-w-xs">
+          {errorMessage}
+        </p>
+      </div>
 
-        
+      <button
+        onClick={() => {
+          setOtpStatus("idle")
+          setOtp(Array(6).fill(""))
+        }}
+        className="w-full bg-rose-600 hover:bg-rose-700 text-white font-semibold py-3 rounded-xl transition shadow-md"
+      >
+        Try Again
+      </button>
+    </div>
+  )
 
+  const renderOtpModal = () => (
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      {/* Backdrop */}
+      <div
+        onClick={otpStatus !== "verifying" ? closeModal : undefined}
+        className="absolute inset-0 bg-zinc-950/60 backdrop-blur-xs"
+      />
 
-       
-    
-    
-        
-    def initiate_model_trainer(self)->ModelTrainerArtifact:
-        try:
-            train_file_path = self.data_transformation_artifact.transformed_train_file_path
-            test_file_path = self.data_transformation_artifact.transformed_test_file_path
+      {/* Modal Card */}
+      <motion.div
+        initial={{ scale: 0.95, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        className="relative bg-white w-full max-w-md p-6 rounded-3xl shadow-2xl border border-zinc-100 z-10 overflow-hidden mx-4"
+      >
+        {otpStatus !== "verifying" && otpStatus !== "success" && (
+          <button
+            onClick={closeModal}
+            className="absolute top-4 right-4 p-2 text-zinc-400 hover:text-zinc-600 rounded-full hover:bg-zinc-100 transition"
+          >
+            <X size={18} />
+          </button>
+        )}
 
-            #loading training array and testing array
-            train_arr = load_numpy_array_data(train_file_path)
-            test_arr = load_numpy_array_data(test_file_path)
+        {otpStatus === "idle" && renderOtpInputView()}
+        {otpStatus === "verifying" && renderOtpVerifyingView()}
+        {otpStatus === "success" && renderOtpSuccessView()}
+        {otpStatus === "failure" && renderOtpFailureView()}
+      </motion.div>
+    </div>
+  )
 
-            x_train, y_train, x_test, y_test = (
-                train_arr[:, :-1],
-                train_arr[:, -1],
-                test_arr[:, :-1],
-                test_arr[:, -1],
-            )
+  if (checkingActive) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
+        <Loader2 className="animate-spin text-emerald-600" size={36} />
+        <p className="text-zinc-500 font-semibold text-sm">Checking active deliveries...</p>
+      </div>
+    )
+  }
 
-            model_trainer_artifact=self.train_model(x_train,y_train,x_test,y_test)
-            return model_trainer_artifact
+  if (activeAssignment) {
+    const order = activeAssignment.order
+    const parsedOrderId = order._id
+    const parsedDeliveryBoyId = activeAssignment.assignedTo
 
-            
-        except Exception as e:
-            raise NetworkSecurityException(e,sys)
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 15 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ ease: "easeOut", duration: 0.4 }}
+        className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8 pt-24 pb-16"
+      >
+        <div className="grid grid-cols-1 lg:grid-cols-[1.5fr_1fr] gap-8">
+          
+          {/* Active order panel */}
+          <div className="space-y-6">
+            <div className="bg-white rounded-3xl border border-zinc-200 shadow-xl p-6 space-y-6">
+              
+              {/* Header */}
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b pb-5">
+                <div>
+                  <span className="inline-block text-xs font-bold text-emerald-700 bg-emerald-100/80 px-2.5 py-1 rounded-full uppercase tracking-wider">
+                    🚴‍♂️ Out for Delivery
+                  </span>
+                  <h1 className="text-2xl font-bold text-zinc-950 mt-2">
+                    Order #{order._id.slice(-6)}
+                  </h1>
+                </div>
+                <button
+                  onClick={() => setIsOtpModalOpen(true)}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-6 py-3 rounded-xl shadow-md transition active:scale-98 text-sm"
+                >
+                  Complete Delivery
+                </button>
+              </div>
+
+              {/* Customer Contact */}
+              <div className="space-y-3">
+                <h2 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">
+                  Delivery Destination
+                </h2>
+                <div className="space-y-2 text-zinc-700 text-sm">
+                  <div className="flex items-center gap-2">
+                    <User size={16} className="text-zinc-400" />
+                    <span className="font-semibold text-zinc-800">{order.address.fullName}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Phone size={16} className="text-zinc-400" />
+                    <a href={`tel:${order.address.mobile}`} className="hover:underline text-emerald-600 font-medium">
+                      {order.address.mobile}
+                    </a>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <MapPin size={16} className="text-zinc-400 mt-0.5 flex-shrink-0" />
+                    <span className="leading-relaxed">
+                      {order.address.fullAddress}, {order.address.city}, {order.address.state} - {order.address.pincode}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Items Table */}
+              <div className="space-y-3">
+                <h2 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">
+                  Items Detail ({order.items.length})
+                </h2>
+                <div className="bg-zinc-50 rounded-2xl p-4 border border-zinc-150 space-y-2.5">
+                  {order.items.map((item: { name: string; unit: string; quantity: number; price: string }, index: number) => (
+                    <div key={index} className="flex justify-between items-center text-sm text-zinc-700">
+                      <span>
+                        {item.name} <span className="text-zinc-400 text-xs">({item.unit})</span>
+                      </span>
+                      <span className="font-semibold text-zinc-800">
+                        {item.quantity} x ₹{item.price}
+                      </span>
+                    </div>
+                  ))}
+                  <div className="flex justify-between items-center border-t pt-3 mt-3 font-bold text-zinc-950 text-base">
+                    <span>Amount to Collect</span>
+                    <span className="text-emerald-600">₹{order.totalAmount}</span>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          {/* Chat pane */}
+          <div className="lg:h-[500px]">
+            <DeliveryChat orderId={parsedOrderId} deliveryBoyId={parsedDeliveryBoyId} />
+          </div>
+
+        </div>
+
+        {isOtpModalOpen && renderOtpModal()}
+      </motion.div>
+    )
+  }
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 15 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ ease: "easeOut", duration: 0.4 }}
+      className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8 pt-24 pb-16"
+    >
+      <DeliveryBoyDashboard
+        assignments={assignments}
+        loading={loading}
+        onAcceptSuccess={handleAcceptSuccess}
+      />
+    </motion.div>
+  )
+}

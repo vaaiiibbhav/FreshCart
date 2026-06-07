@@ -6,7 +6,6 @@ import {
   Package,
   Truck,
   Home,
-  ShoppingBag,
   ClipboardList,
 } from "lucide-react"
 import Link from "next/link"

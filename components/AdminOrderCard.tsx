@@ -11,17 +11,15 @@ import {
 } from "lucide-react"
 import { motion } from "framer-motion"
 import { useState } from "react"
-import { div } from "motion/react-client"
-import mongoose from "mongoose"
-import { IUser } from "@/models/user.model"
+import type { IUser } from "@/models/user.model"
 
 interface IOrder {
-  _id ?: mongoose.Types.ObjectId,
-  user : mongoose.Types.ObjectId,
-  assignment ?: mongoose.Types.ObjectId,
+  _id ?: string,
+  user : string,
+  assignment ?: string,
   items: [
     {
-      grocery : mongoose.Types.ObjectId,
+      grocery : string,
       name    : string,
       price   : string,
       unit    : string,
@@ -49,8 +47,14 @@ interface IOrder {
 }
 
 export default function AdminOrderCard({ order }: { order: IOrder }) {
+  const [prevStatus, setPrevStatus] = useState<string>(order.status)
   const [currentStatus, setCurrentStatus] = useState<string>(order.status)
   const [loading, setLoading] = useState(false)
+
+  if (order.status !== prevStatus) {
+    setPrevStatus(order.status)
+    setCurrentStatus(order.status)
+  }
 
   const statusColor = {
     pending: "text-amber-600",

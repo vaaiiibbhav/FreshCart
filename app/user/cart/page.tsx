@@ -1,5 +1,6 @@
 "use client"
 
+import { useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import {
@@ -8,7 +9,41 @@ import {
   Plus,
   Minus,
   ShoppingCart,
+  Apple,
+  Milk,
+  Coffee,
+  Cookie,
+  Cake,
+  Wheat,
+  Soup,
+  Fish,
+  Flame,
+  Home,
+  Package,
+  Baby,
+  Drumstick,
+  Snowflake,
+  Boxes,
+  LucideIcon
 } from "lucide-react"
+
+const categoryIconMap: Record<string, { icon: LucideIcon; color: string; bgColor: string }> = {
+  "Fruits & Vegetables": { icon: Apple, color: "#10b981", bgColor: "#f0fdf4" },
+  "Dairy & Eggs": { icon: Milk, color: "#3b82f6", bgColor: "#eff6ff" },
+  "Beverages": { icon: Coffee, color: "#f59e0b", bgColor: "#fffbeb" },
+  "Snacks & Cookies": { icon: Cookie, color: "#f97316", bgColor: "#fff7ed" },
+  "Bakery": { icon: Cake, color: "#ec4899", bgColor: "#fdf2f8" },
+  "Pulses & Legumes": { icon: Wheat, color: "#84cc16", bgColor: "#f7fee7" },
+  "Grains & Cereals": { icon: Soup, color: "#eab308", bgColor: "#fefcbf" },
+  "Seafood": { icon: Fish, color: "#06b6d4", bgColor: "#f0f9ff" },
+  "Spices & Masalas": { icon: Flame, color: "#ef4444", bgColor: "#fef2f2" },
+  "Household Essentials": { icon: Home, color: "#64748b", bgColor: "#f8fafc" },
+  "Instant & Packaged Food": { icon: Package, color: "#8b5cf6", bgColor: "#f5f3ff" },
+  "Baby & Pet care": { icon: Baby, color: "#d946ef", bgColor: "#fdf4ff" },
+  "Meat & Poultry": { icon: Drumstick, color: "#dc2626", bgColor: "#fef2f2" },
+  "Frozen": { icon: Snowflake, color: "#0891b2", bgColor: "#ecfeff" },
+  "Others": { icon: Boxes, color: "#6b7280", bgColor: "#f9fafb" }
+}
 import { motion, AnimatePresence } from "motion/react"
 import { useDispatch, useSelector } from "react-redux"
 import { RootState, AppDispatch } from "@/redux/store"
@@ -24,6 +59,7 @@ export default function CartPage() {
   const dispatch = useDispatch<AppDispatch>()
   const router = useRouter()
   const { cartData } = useSelector((state: RootState) => state.cart)
+  const [erroredImages, setErroredImages] = useState<Record<string, boolean>>({})
 
   const subtotal = cartData.reduce(
     (sum, item) => sum + item.price * item.quantity,
@@ -81,7 +117,7 @@ export default function CartPage() {
               </p>
 
               <Link
-                href="/"
+                href="/shop"
                 className="
                   px-6 py-3 rounded-full
                   bg-green-600 text-white
@@ -120,13 +156,27 @@ export default function CartPage() {
                       "
                     >
                       {/* IMAGE */}
-                      <div className="relative w-16 h-16 shrink-0 mx-auto sm:mx-0">
-                        <Image
-                          src={item.image}
-                          alt={item.name}
-                          fill
-                          className="object-contain"
-                        />
+                      <div className="relative w-16 h-16 shrink-0 mx-auto sm:mx-0 flex items-center justify-center rounded-lg overflow-hidden bg-gray-50">
+                        {!erroredImages[item._id] ? (
+                          <Image
+                            src={item.image}
+                            alt={item.name}
+                            fill
+                            className="object-contain"
+                            onError={() => setErroredImages(prev => ({ ...prev, [item._id]: true }))}
+                          />
+                        ) : (() => {
+                          const catConf = categoryIconMap[item.category] || categoryIconMap["Others"]
+                          const CatIcon = catConf.icon
+                          return (
+                            <div 
+                              className="w-full h-full flex items-center justify-center"
+                              style={{ backgroundColor: catConf.bgColor }}
+                            >
+                              <CatIcon size={24} style={{ color: catConf.color }} />
+                            </div>
+                          )
+                        })()}
                       </div>
 
                       {/* INFO */}

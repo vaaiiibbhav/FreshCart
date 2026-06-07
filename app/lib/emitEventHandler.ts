@@ -1,6 +1,6 @@
 import axios from "axios"
 
-export default async function emitEventHandler(event:string,data:any,socketId?:string){
+export default async function emitEventHandler(event: string, data: unknown, socketId?: string) {
   try{
    await axios.post(`${process.env.NEXT_PUBLIC_SOCKET_SERVER}/notify`,{
     socketId,

@@ -4,8 +4,13 @@
   display: none;
 }
 
-Hide scollbar for IE, Edge and firefox
+/* Hide scrollbar for IE, Edge and Firefox */
 .scollbar-hide {
   -ms-overflow-style: none;
   scrollbar-width: none;
+}
+
+/* Smooth marker movement animations for Leaflet */
+.leaflet-marker-icon {
+  transition: transform 0.5s linear;
 }

@@ -1,17 +1,25 @@
 "use client"
 
 import { getSocket } from "@/app/lib/socket"
-import { IMessage } from "@/models/message.model"
 import axios from "axios"
 import { Sparkles } from "lucide-react"
-import mongoose from "mongoose"
 import { AnimatePresence, motion } from "motion/react"
 import { useEffect, useRef, useState } from "react"
 import { v4 as uuidv4 } from "uuid"
 
+export interface IMessage {
+  _id?: string
+  roomId: string
+  senderId: string
+  text: string
+  time: string
+  createdAt?: string
+  updatedAt?: string
+}
+
 type Props = {
-  orderId: mongoose.Types.ObjectId
-  deliveryBoyId?: mongoose.Types.ObjectId
+  orderId: string
+  deliveryBoyId?: string
 }
 
 type UIMessage = IMessage & {

@@ -16,5 +16,5 @@ export default function UseGetMe(){
       }
     }
     getMe()
-  },[])
+  },[dispatch])
 }

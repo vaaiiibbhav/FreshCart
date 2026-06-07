@@ -36,6 +36,7 @@ export default function RegisterForm({ previousStep }: RegisterFormProps) {
   const [focused, setFocused] = useState<string | null>(null)
   const [errors, setErrors] = useState<Errors>({})
   const [loading, setLoading] = useState(false)
+  const [role, setRole] = useState("user")
 
   // ---------------- VALIDATION ----------------
   const validate = () => {
@@ -61,11 +62,12 @@ export default function RegisterForm({ previousStep }: RegisterFormProps) {
         name,
         email,
         password,
+        role,
       })
       console.log("Registered:", res.data)
       router.push("/login")
     } catch (err) {
-      console.error("Registration failed")
+      console.error("Registration failed", err)
     } finally {
       setLoading(false)
     }
@@ -245,6 +247,24 @@ export default function RegisterForm({ previousStep }: RegisterFormProps) {
                   </motion.p>
                 )}
               </AnimatePresence>
+            </div>
+
+            {/* Sandbox Role */}
+            <div>
+              <label className="text-sm font-medium text-gray-700 mb-1 block">
+                Select Sandbox Role
+              </label>
+              <select
+                value={role}
+                onChange={(e) => setRole(e.target.value)}
+                disabled={loading}
+                className="w-full px-4 py-3 rounded-xl text-sm border border-gray-300 bg-gray-50 outline-none focus:border-indigo-500 focus:bg-white transition cursor-pointer"
+              >
+                <option value="user">Customer (User)</option>
+                <option value="deliveryBoy">Rider (Delivery Boy)</option>
+                <option value="cook">Chef (Cook)</option>
+                <option value="admin">Manager (Admin)</option>
+              </select>
             </div>
 
             {/* SUBMIT */}

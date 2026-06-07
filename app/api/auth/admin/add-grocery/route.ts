@@ -39,19 +39,53 @@ export async function POST(req: NextRequest) {
     /* ---------- DB ---------- */
     await connectDB()
 
-    /* ---------- FORM DATA ---------- */
-    const formData = await req.formData()
+    /* ---------- PARSE REQUEST ---------- */
+    const contentType = req.headers.get("content-type") || ""
+    let name = ""
+    let category = ""
+    let price = 0
+    let unit = 0
+    let imageUrl = ""
+    let description = ""
 
-    const name = formData.get("name")?.toString()
-    const category = formData.get("category")?.toString()
-    const price = Number(formData.get("price"))
-    const unit = Number(formData.get("unit"))
-    const file = formData.get("image") as Blob | null
+    if (contentType.includes("application/json")) {
+      const body = await req.json()
+      name = body.name || ""
+      category = body.category || ""
+      price = Number(body.price)
+      unit = Number(body.unit)
+      imageUrl = body.image || ""
+      description = body.description || ""
+    } else {
+      const formData = await req.formData()
+      name = formData.get("name")?.toString() || ""
+      category = formData.get("category")?.toString() || ""
+      price = Number(formData.get("price"))
+      unit = Number(formData.get("unit"))
+      description = formData.get("description")?.toString() || ""
+      const file = formData.get("image") as Blob | null
+
+      if (!file) {
+        return NextResponse.json(
+          { error: "Image file is required for multipart uploads" },
+          { status: 400 }
+        )
+      }
+
+      const uploadedUrl = await uploadOnCloudinary(file)
+      if (!uploadedUrl) {
+        return NextResponse.json(
+          { error: "Image upload failed" },
+          { status: 500 }
+        )
+      }
+      imageUrl = uploadedUrl
+    }
 
     /* ---------- VALIDATION ---------- */
-    if (!name || !category || !file || !price || !unit) {
+    if (!name || !category || !imageUrl || !price || !unit) {
       return NextResponse.json(
-        { error: "All fields are required" },
+        { error: "All fields (name, category, price, unit, and image) are required" },
         { status: 400 }
       )
     }
@@ -70,16 +104,6 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    /* ---------- IMAGE UPLOAD ---------- */
-    const imageUrl = await uploadOnCloudinary(file)
-
-    if (!imageUrl) {
-      return NextResponse.json(
-        { error: "Image upload failed" },
-        { status: 500 }
-      )
-    }
-
     /* ---------- CREATE GROCERY ---------- */
     const grocery = await GroceryModel.create({
       name,
@@ -87,6 +111,7 @@ export async function POST(req: NextRequest) {
       price,
       unit,
       image: imageUrl,
+      description,
     })
 
     /* ---------- RESPONSE ---------- */

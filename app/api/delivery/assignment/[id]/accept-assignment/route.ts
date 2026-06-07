@@ -32,6 +32,13 @@ export async function POST(
       )
     }
 
+    if (session?.user?.role !== "deliveryBoy") {
+      return NextResponse.json(
+        { error: "Forbidden: Only delivery partners can accept assignments" },
+        { status: 403 }
+      )
+    }
+
     await connectDB()
 
     const assignment = await DeliveryAssignmentModel.findById(id)

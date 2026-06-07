@@ -6,17 +6,33 @@ import { useParams, useRouter } from "next/navigation"
 import { useSelector } from "react-redux"
 import { RootState } from "@/redux/store"
 import { ArrowLeft, Sparkles } from "lucide-react"
-import LiveMap from "@/components/LiveMap"
+import dynamic from "next/dynamic"
+const LiveMap = dynamic(() => import("@/components/LiveMap"), { ssr: false })
 import { getSocket } from "@/app/lib/socket"
 import { IUser } from "@/models/user.model"
 import { AnimatePresence, motion } from "motion/react"
-import { IMessage } from "@/models/message.model"
+export interface IMessage {
+  _id?: string
+  roomId: string
+  senderId: string
+  text: string
+  time: string
+  createdAt?: string
+  updatedAt?: string
+}
 import { v4 as uuidv4 } from "uuid"
 
 interface IOrder {
-  _id?: any
-  user: any
-  items: any[]
+  _id?: string
+  user: { _id: string; name: string; email: string; mobile: string }
+  items: Array<{
+    grocery: string
+    name: string
+    price: string
+    unit: string
+    image: string
+    quantity: number
+  }>
   assignedDeliveryBoy?: IUser
   address: {
     latitude: number
@@ -30,7 +46,8 @@ interface ILocation {
   longitude: number
 }
 
-type UIMessage = IMessage & {
+type UIMessage = Omit<IMessage, "_id"> & {
+  _id?: IMessage["_id"]
   _clientId: string
 }
 
@@ -111,23 +128,7 @@ export default function TrackOrderPage() {
     }
   }, [orderId])
 
-  // 🔹 LIVE LOCATION UPDATES (UNCHANGED)
-  useEffect(() => {
-    const socket = getSocket()
 
-    socket.on("update-deliveryBoy-location", (data) => {
-      if (data?.location?.coordinates?.length === 2) {
-        setDeliveryBoyLocation({
-          latitude: data.location.coordinates[1],
-          longitude: data.location.coordinates[0],
-        })
-      }
-    })
-
-    return () => {
-      socket.off("update-deliveryBoy-location")
-    }
-  }, [])
 
   // 🔹 SEND MESSAGE (UNCHANGED)
   const sendMsg = () => {
@@ -187,7 +188,7 @@ export default function TrackOrderPage() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6 px-2">
+    <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8 pt-24 pb-16 space-y-6">
       {/* HEADER */}
       <div className="flex items-center gap-3">
         <button
@@ -206,7 +207,8 @@ export default function TrackOrderPage() {
       <div className="rounded-2xl overflow-hidden shadow-lg">
         <LiveMap
           userLocation={userLocation}
-          deliveryBoyLocation={deliveryBoyLocation}
+          deliveryBoyId={order?.assignedDeliveryBoy?._id?.toString()}
+          initialDeliveryBoyLocation={deliveryBoyLocation}
         />
       </div>
 

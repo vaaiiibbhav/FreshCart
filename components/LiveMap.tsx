@@ -10,7 +10,8 @@ import {
   useMap,
 } from "react-leaflet"
 import "leaflet/dist/leaflet.css"
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
+import { getSocket } from "@/app/lib/socket"
 
 type Location = {
   latitude?: number
@@ -36,11 +37,59 @@ function Recenter({ position }: { position: [number, number] }) {
 
 export default function LiveMap({
   userLocation,
-  deliveryBoyLocation,
+  deliveryBoyId,
+  initialDeliveryBoyLocation,
 }: {
   userLocation: Location
-  deliveryBoyLocation?: Location
+  deliveryBoyId?: string
+  initialDeliveryBoyLocation?: Location
 }) {
+  const [deliveryBoyLocation, setDeliveryBoyLocation] = useState<Location | undefined>(
+    initialDeliveryBoyLocation
+  )
+
+  const [prevInitialLocation, setPrevInitialLocation] = useState<Location | undefined>(
+    initialDeliveryBoyLocation
+  )
+
+  if (initialDeliveryBoyLocation !== prevInitialLocation) {
+    setPrevInitialLocation(initialDeliveryBoyLocation)
+    setDeliveryBoyLocation(initialDeliveryBoyLocation)
+  }
+
+  interface LocationUpdatePayload {
+    userId?: string
+    location?: {
+      type?: string
+      coordinates?: number[]
+    }
+  }
+
+  useEffect(() => {
+    if (!deliveryBoyId) return
+
+    const socket = getSocket()
+
+    const handleLocationUpdate = (data: LocationUpdatePayload) => {
+      if (
+        data?.userId &&
+        data.userId.toString() === deliveryBoyId.toString() &&
+        data?.location?.coordinates?.length === 2
+      ) {
+        setDeliveryBoyLocation({
+          latitude: data.location.coordinates[1],
+          longitude: data.location.coordinates[0],
+        })
+      }
+    }
+
+    socket.on("update-deliveryBoy-location", handleLocationUpdate)
+
+    return () => {
+      socket.off("update-deliveryBoy-location", handleLocationUpdate)
+    }
+  }, [deliveryBoyId])
+
   const hasUserCoords =
     typeof userLocation?.latitude === "number" &&
     typeof userLocation?.longitude === "number" &&

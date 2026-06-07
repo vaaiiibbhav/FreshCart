@@ -5,10 +5,10 @@ import { motion } from "motion/react"
 import {
   ShoppingCart,
   CheckCircle,
-  MapPin,
-  MessageCircle,
   ArrowRight,
 } from "lucide-react"
+
+import { useSession } from "next-auth/react"
 
 const container = {
   hidden: { opacity: 0 },
@@ -28,6 +28,8 @@ type WelcomProps = {
 }
 
 export default function Welcome({nextStep}:WelcomProps) {
+  const { data: session } = useSession()
+
   return (
     <div className="min-h-screen bg-[#F7F9FC] flex items-center justify-center px-6">
       <motion.div
@@ -67,18 +69,48 @@ export default function Welcome({nextStep}:WelcomProps) {
           </motion.p>
 
           <motion.div variants={item} className="flex gap-4">
-            <motion.button
-              whileHover={{ scale: 1.04 }}
-              whileTap={{ scale: 0.98 }}
-              className="px-6 py-3 rounded-lg bg-[#2F6FED] text-white font-medium shadow-sm flex items-center gap-2"
-              onClick={()=>nextStep(2)}
-            >
-              Start shopping <ArrowRight size={16} />
-            </motion.button>
+            {session?.user?.role === "admin" ? (
+              <motion.button
+                whileHover={{ scale: 1.04 }}
+                whileTap={{ scale: 0.98 }}
+                className="px-6 py-3 rounded-lg bg-red-600 hover:bg-red-700 text-white font-medium shadow-sm flex items-center gap-2 cursor-pointer"
+                onClick={() => window.location.href = "/admin/manage-orders"}
+              >
+                Go to Admin Dashboard <ArrowRight size={16} />
+              </motion.button>
+            ) : session?.user?.role === "deliveryBoy" ? (
+              <motion.button
+                whileHover={{ scale: 1.04 }}
+                whileTap={{ scale: 0.98 }}
+                className="px-6 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-medium shadow-sm flex items-center gap-2 cursor-pointer"
+                onClick={() => window.location.href = "/delivery"}
+              >
+                Go to Rider Dashboard <ArrowRight size={16} />
+              </motion.button>
+            ) : session?.user?.role === "cook" ? (
+              <motion.button
+                whileHover={{ scale: 1.04 }}
+                whileTap={{ scale: 0.98 }}
+                className="px-6 py-3 rounded-lg bg-orange-600 hover:bg-orange-700 text-white font-medium shadow-sm flex items-center gap-2 cursor-pointer"
+                onClick={() => window.location.href = "/cook"}
+              >
+                Go to Kitchen Dashboard <ArrowRight size={16} />
+              </motion.button>
+            ) : (
+              <motion.button
+                whileHover={{ scale: 1.04 }}
+                whileTap={{ scale: 0.98 }}
+                className="px-6 py-3 rounded-lg bg-[#2F6FED] text-white font-medium shadow-sm flex items-center gap-2 cursor-pointer"
+                onClick={() => nextStep(2)}
+              >
+                Start shopping <ArrowRight size={16} />
+              </motion.button>
+            )}
 
             <motion.button
               whileHover={{ backgroundColor: "#EEF2F7" }}
-              className="px-6 py-3 rounded-lg border border-[#D1D5DB] text-[#374151] font-medium"
+              className="px-6 py-3 rounded-lg border border-[#D1D5DB] text-[#374151] font-medium cursor-pointer"
+              onClick={() => window.location.href = "/shop"}
             >
               Browse categories
             </motion.button>

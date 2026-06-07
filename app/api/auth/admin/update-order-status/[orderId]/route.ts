@@ -52,12 +52,19 @@ export async function POST(
     order.status = status;
     await order.save();
 
-    let deliveryBoysPayload: any = [];
+    let deliveryBoysPayload: Array<{
+      name: string
+      id: string
+      mobile: string
+      latitude: number
+      longitude: number
+      socketId: string | null
+    }> = [];
 
     if (status === "out of delivery" && !order.assignment) {
       const { latitude, longitude } = order.address;
 
-      let nearByDeliveryBoys = await UserModel.find({
+      const nearByDeliveryBoys = await UserModel.find({
         role: "deliveryBoy",
         location: {
           $near: {
@@ -77,7 +84,7 @@ export async function POST(
         status: { $nin: ["completed", "broadcasted"] }
       }).distinct("assignedTo");
 
-      const busyIdsSet = new Set(busyIds.map((b: any) => b.toString()));
+      const busyIdsSet = new Set(busyIds.map((b) => b.toString()));
 
       const availableDeliveryBoysIds = nearByDeliveryBoys.filter(
         b => !busyIdsSet.has(b._id.toString())

@@ -1,7 +1,7 @@
 "use client"
 
 import { getSocket } from "@/app/lib/socket"
-import { IUser } from "@/models/user.model"
+import type { IUser } from "@/models/user.model"
 import {
   ChevronDown,
   MapPin,
@@ -14,12 +14,16 @@ import { motion, AnimatePresence } from "motion/react"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 
-interface IOrder {
-  _id?: any
-  user: any
-  assignment?: any
+type IdLike = string | { toString(): string }
+
+type OrderStatus = "pending" | "out of delivery" | "delivered"
+
+export interface IOrder {
+  _id?: IdLike
+  user: unknown
+  assignment?: unknown
   items: {
-    grocery: any
+    grocery: unknown
     name: string
     price: string
     unit: string
@@ -40,7 +44,7 @@ interface IOrder {
     latitude: number
     longitude: number
   }
-  status: "pending" | "out of delivery" | "delivered"
+  status: OrderStatus
   createdAt?: Date
   updatedAt?: Date
 }
@@ -53,14 +57,16 @@ export default function UserOrderCard({ order }: { order: IOrder }) {
   useEffect(() => {
     const socket = getSocket()
 
-    const handler = (data: any) => {
+    const handler = (data: { orderId?: IdLike; status: OrderStatus }) => {
       if (data.orderId?.toString() === order._id?.toString()) {
         setStatus(data.status)
       }
     }
 
     socket.on("order-status-update", handler)
-    return () => socket.off("order-status-update", handler)
+    return () => {
+      socket.off("order-status-update", handler)
+    }
   }, [order._id])
 
   const statusMap = {
@@ -76,12 +82,12 @@ export default function UserOrderCard({ order }: { order: IOrder }) {
     <motion.div
       whileHover={{ y: -4 }}
       transition={{ type: "spring", stiffness: 220, damping: 22 }}
-      className="rounded-3xl bg-white shadow-lg border border-gray-100 overflow-hidden"
+      className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm transition-shadow hover:shadow-lg"
     >
       {/* Header */}
-      <div className="p-6 space-y-4">
-        <div className="flex justify-between items-start">
-          <div>
+      <div className="space-y-4 p-4 sm:p-6">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0">
             <p className="text-xs uppercase tracking-wide text-gray-400">
               Order ID
             </p>
@@ -91,14 +97,14 @@ export default function UserOrderCard({ order }: { order: IOrder }) {
           </div>
 
           <span
-            className={`px-4 py-1 rounded-full text-xs font-semibold capitalize ${statusMap[status]}`}
+            className={`w-fit rounded-full px-4 py-1 text-xs font-semibold capitalize ${statusMap[status]}`}
           >
             {status}
           </span>
         </div>
 
         {/* Payment + Total */}
-        <div className="flex justify-between items-center text-sm text-gray-600">
+        <div className="flex flex-col gap-2 text-sm text-gray-600 sm:flex-row sm:items-center sm:justify-between">
           <span className="flex items-center gap-2">
             <CreditCard size={16} />
             {showPaymentInfo ? (
@@ -117,7 +123,7 @@ export default function UserOrderCard({ order }: { order: IOrder }) {
             )}
           </span>
 
-          <span className="text-base font-bold text-gray-900">
+          <span className="text-base font-bold text-gray-900 sm:text-right">
             ₹{order.totalAmount}
           </span>
         </div>
@@ -139,10 +145,10 @@ export default function UserOrderCard({ order }: { order: IOrder }) {
               </p>
             </div>
 
-            <div className="flex gap-3 pt-2">
+            <div className="flex flex-col gap-3 pt-2 sm:flex-row">
               <a
                 href={`tel:${order.assignedDeliveryBoy.mobile}`}
-                className="flex-1 text-center py-2 rounded-lg text-sm font-medium bg-white border hover:bg-gray-50"
+                className="flex-1 rounded-lg border bg-white py-2 text-center text-sm font-medium transition hover:bg-gray-50"
               >
                 Call
               </a>
@@ -152,7 +158,7 @@ export default function UserOrderCard({ order }: { order: IOrder }) {
                   onClick={() =>
                     router.push(`/user/track-order/${order._id?.toString()}`)
                   }
-                  className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium bg-emerald-600 text-white hover:bg-emerald-700"
+                  className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-emerald-600 py-2 text-sm font-medium text-white transition hover:bg-emerald-700"
                 >
                   <Truck size={16} />
                   Track Order
@@ -166,12 +172,12 @@ export default function UserOrderCard({ order }: { order: IOrder }) {
         <div className="rounded-xl bg-gray-50 p-4 space-y-1 text-sm text-gray-700">
           <div className="flex items-start gap-2">
             <MapPin size={16} className="mt-0.5 shrink-0" />
-            <div>
+            <div className="min-w-0">
               <p className="font-medium">{order.address.fullName}</p>
               <p className="text-gray-600">
                 📞 {order.address.mobile}
               </p>
-              <p className="text-gray-600">
+              <p className="break-words text-gray-600">
                 {order.address.fullAddress}, {order.address.city},{" "}
                 {order.address.state} - {order.address.pincode}
               </p>
@@ -182,7 +188,7 @@ export default function UserOrderCard({ order }: { order: IOrder }) {
         {/* Items Toggle */}
         <button
           onClick={() => setOpen(!open)}
-          className="w-full flex justify-between items-center text-sm font-medium text-emerald-700 hover:text-emerald-800"
+          className="flex w-full items-center justify-between rounded-lg py-2 text-sm font-medium text-emerald-700 transition hover:bg-emerald-50 hover:px-3 hover:text-emerald-800"
         >
           {open ? "Hide items" : `View ${order.items.length} items`}
           <ChevronDown
@@ -199,12 +205,12 @@ export default function UserOrderCard({ order }: { order: IOrder }) {
             initial={{ opacity: 0, y: -6 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -6 }}
-            className="px-6 py-4 bg-gray-50 border-t space-y-3"
+            className="space-y-3 border-t bg-gray-50 px-4 py-4 sm:px-6"
           >
             {order.items.map((item, i) => (
               <div
                 key={i}
-                className="flex justify-between items-center text-sm"
+                className="flex items-start justify-between gap-4 text-sm"
               >
                 <div>
                   <p className="font-medium text-gray-800">
@@ -215,7 +221,7 @@ export default function UserOrderCard({ order }: { order: IOrder }) {
                   </p>
                 </div>
 
-                <p className="font-semibold text-gray-900">
+                <p className="shrink-0 font-semibold text-gray-900">
                   ₹{Number(item.price) * item.quantity}
                 </p>
               </div>

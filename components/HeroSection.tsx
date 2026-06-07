@@ -41,7 +41,7 @@ const slides: Slide[] = [
     description:
       "From store to your door in minutes. Freshness and speed you can rely on.",
     image:
-      "https://images.unsplash.com/photo-1586201375761-83865001e17b?auto=format&fit=crop&w=2400&q=80",
+      "https://images.unsplash.com/photo-1534531173927-aeb928d54385?auto=format&fit=crop&w=2400&q=80",
     cta: "Start Shopping",
   },
 ]
@@ -55,7 +55,13 @@ export default function HeroSection() {
 
   // Prevent hydration mismatch
   useEffect(() => {
-    setMounted(true)
+    let active = true
+    setTimeout(() => {
+      if (active) setMounted(true)
+    }, 0)
+    return () => {
+      active = false
+    }
   }, [])
 
   // Auto slide

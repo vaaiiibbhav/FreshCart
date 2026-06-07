@@ -83,8 +83,8 @@ export default function AddGroceryPage() {
       setUnit("")
       setImageFile(null)
       setPreview(null)
-    } catch (err: any) {
-      alert(err.message)
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : "Failed to add grocery")
     } finally {
       setLoading(false)
     }
@@ -125,7 +125,7 @@ export default function AddGroceryPage() {
           </div>
 
           {/* NAME */}
-          <Input label="Grocery Name" value={name} onChange={setName} />
+          <Input label="Grocery Name" value={name} onChange={v => setName(String(v))} />
 
           {/* CATEGORY */}
           <div>
@@ -215,6 +215,7 @@ export default function AddGroceryPage() {
               "
             >
               {preview ? (
+                /* eslint-disable-next-line @next/next/no-img-element */
                 <img
                   src={preview}
                   alt="Preview"
@@ -267,8 +268,8 @@ function Input({
   type = "text",
 }: {
   label: string
-  value: any
-  onChange: (v: any) => void
+  value: string | number
+  onChange: (v: string | number) => void
   type?: string
 }) {
   return (

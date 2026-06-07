@@ -1,9 +1,9 @@
 import connectDB from "@/app/lib/db";
 import { auth } from "@/auth";
 import OrderModel from "@/models/order.model";
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 
-export async function GET(req: NextRequest) {
+export async function GET() {
   try {
     await connectDB()
     const session = await auth()

@@ -3,6 +3,7 @@ import mongoose from "mongoose";
 export interface IOrder {
   _id ?: mongoose.Types.ObjectId,
   user : mongoose.Types.ObjectId,
+  userId ?: string | mongoose.Types.ObjectId,
   assignment ?: mongoose.Types.ObjectId,
   items: [
     {
@@ -17,10 +18,11 @@ export interface IOrder {
   assignedDeliveryBoy ?: mongoose.Types.ObjectId | null,
   totalAmount         : number,
   paymentMethod       : "cod" | "online",
-  isPaid              : boolean,
+  isPaid             ?: boolean,
   address             : {
     fullName          : string,
     mobile            : string,
+    phone            ?: string,
     fullAddress       : string,
     city              : string,
     state             : string,
@@ -31,9 +33,9 @@ export interface IOrder {
   status            : "pending" | "out of delivery" | "delivered",
   createdAt         ?: Date,
   updatedAt         ?: Date,
-  deliveryOtp         : string | null,
-  deliveryOtpVerification : Boolean,
-  deliveredAt         : Date | null,
+  deliveryOtp        ?: string | null,
+  deliveryOtpVerification ?: boolean,
+  deliveredAt        ?: Date | null,
 }
 
 const OrderSchema = new mongoose.Schema<IOrder>({
@@ -41,6 +43,11 @@ const OrderSchema = new mongoose.Schema<IOrder>({
     type     : mongoose.Schema.Types.ObjectId,
     ref      : "User",
     required : true
+  },
+  userId : {
+    type     : mongoose.Schema.Types.ObjectId,
+    ref      : "User",
+    required : false
   },
   assignment : { 
     type     : mongoose.Schema.Types.ObjectId,
@@ -93,6 +100,7 @@ const OrderSchema = new mongoose.Schema<IOrder>({
   address       : {
     fullName    : String,
     mobile      : String,
+    phone       : String,
     fullAddress : String,
     city        : String,
     state       : String,

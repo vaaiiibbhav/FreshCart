@@ -7,16 +7,15 @@ import AdminOrderCard from "@/components/AdminOrderCard"
 import { ArrowLeft } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import { getSocket } from "@/app/lib/socket"
-import mongoose from "mongoose"
 import { IUser } from "@/models/user.model"
 
 interface IOrder {
-  _id ?: mongoose.Types.ObjectId,
-  user : mongoose.Types.ObjectId,
-  assignment ?: mongoose.Types.ObjectId,
+  _id ?: string,
+  user : string,
+  assignment ?: string,
   items: [
     {
-      grocery : mongoose.Types.ObjectId,
+      grocery : string,
       name    : string,
       price   : string,
       unit    : string,
@@ -61,7 +60,7 @@ export default function ManageOrdersPage() {
   useEffect(() => {
     const loadOrders = async () => {
       try {
-        const res = await axios.get("/api/auth/admin/get-orders")
+        const res = await axios.get("/api/orders")
         setOrders(res.data.orders || [])
       } catch (err) {
         console.error("Failed to load orders", err)
@@ -77,7 +76,7 @@ export default function ManageOrdersPage() {
 
       {/* ===== Sticky Header ===== */}
       <header className="sticky top-0 z-30 bg-[#F5F5F7]/85 backdrop-blur border-b border-[#E5E5EA]">
-        <div className="max-w-6xl mx-auto px-4 py-3 flex items-center gap-3">
+        <div className="w-full max-w-7xl mx-auto px-4 py-3 flex items-center gap-3">
           <button
             onClick={() => router.back()}
             className="flex items-center gap-2 px-3 py-2 rounded-lg
@@ -101,7 +100,7 @@ export default function ManageOrdersPage() {
       </header>
 
       {/* ===== Content ===== */}
-      <main className="max-w-6xl mx-auto px-3 sm:px-6 py-4 sm:py-6">
+      <main className="w-full max-w-7xl mx-auto px-4 py-4 sm:py-6">
         <AnimatePresence mode="wait">
 
           {/* Loading */}

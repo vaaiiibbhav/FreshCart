@@ -52,10 +52,13 @@ const CATEGORIES: CategoryItem[] = [
 ]
 
 /* -------------------------------------------------------------------------- */
+import { useRouter } from "next/navigation"
+
 /*                              MAIN COMPONENT                                 */
 /* -------------------------------------------------------------------------- */
 
 export default function CategorySlider() {
+  const router = useRouter()
   /**
    * Duplicate categories to create a seamless infinite loop.
    * This avoids any "jump back" feeling.
@@ -66,7 +69,7 @@ export default function CategorySlider() {
     <section className="w-full py-12 overflow-hidden">
       {/* ------------------------------ Heading ------------------------------ */}
       <motion.h2
-        className="text-2xl font-semibold text-center mb-10"
+        className="text-2xl font-semibold text-center mb-10 text-zinc-800"
         initial={{ opacity: 0, y: 20 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true, amount: 0.5 }}
@@ -96,6 +99,7 @@ export default function CategorySlider() {
             <CategoryCard
               key={`${item.name}-${index}`}
               item={item}
+              onClick={() => router.push(`/shop?category=${encodeURIComponent(item.name)}`)}
             />
           ))}
         </motion.div>
@@ -108,26 +112,31 @@ export default function CategorySlider() {
 /*                            CATEGORY CARD UI                                 */
 /* -------------------------------------------------------------------------- */
 
-function CategoryCard({ item }: { item: CategoryItem }) {
+function CategoryCard({ item, onClick }: { item: CategoryItem; onClick?: () => void }) {
   const Icon = item.icon
 
   return (
     <div
+      onClick={onClick}
       className="
         min-w-[150px] sm:min-w-[160px]
         h-[150px] sm:h-[160px]
         rounded-2xl
         bg-white
         border
+        border-zinc-100
         shadow-sm
         flex flex-col
         items-center
         justify-center
         gap-3
         cursor-pointer
-        transition
+        transition-all
+        duration-300
         hover:shadow-md
         hover:-translate-y-1
+        hover:border-green-300
+        active:scale-95
       "
     >
       {/* Icon */}
@@ -142,10 +151,9 @@ function CategoryCard({ item }: { item: CategoryItem }) {
       </div>
 
       {/* Label */}
-      <p className="text-sm font-medium text-gray-700 text-center px-2">
+      <p className="text-sm font-semibold text-gray-700 text-center px-2 select-none">
         {item.name}
       </p>
     </div>
   )
 }
-4
