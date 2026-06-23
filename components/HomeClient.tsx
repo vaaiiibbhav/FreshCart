@@ -12,7 +12,7 @@ interface HomeClientProps {
   user: {
     id: string
     name: string
-    role: "user" | "deliveryBoy" | "admin"
+    role: "user" | "deliveryBoy" | "admin" | "cook"
     image: string | null
     mobile: string | null
   }
@@ -23,8 +23,10 @@ export default function HomeClient({ user, groceries }: HomeClientProps) {
   const [hasMounted, setHasMounted] = useState(false)
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setHasMounted(true)
+    const timer = setTimeout(() => {
+      setHasMounted(true)
+    }, 0)
+    return () => clearTimeout(timer)
   }, [])
 
   if (!hasMounted) {

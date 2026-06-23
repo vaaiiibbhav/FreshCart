@@ -12,7 +12,6 @@ import {
   RefreshCw, 
   Clock, 
   CheckCircle, 
-  Package, 
   Utensils 
 } from "lucide-react"
 

@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server"
+import { NextResponse } from "next/server"
 import connectDB from "@/app/lib/db"
 import { auth } from "@/auth"
 import UserModel from "@/models/user.model"
@@ -59,7 +59,7 @@ const RESET_PRODUCTS = [
   },
 ]
 
-export async function POST(request: NextRequest) {
+export async function POST() {
   try {
     const session = await auth()
     if (!session || session.user?.role !== "admin") {
@@ -115,8 +115,9 @@ export async function POST(request: NextRequest) {
       success: true,
       message: "Sandbox purged and reseeded successfully.",
     })
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("Reset sandbox error:", err)
-    return NextResponse.json({ error: err.message || "Failed to reset sandbox" }, { status: 500 })
+    const errorMessage = err instanceof Error ? err.message : "Failed to reset sandbox"
+    return NextResponse.json({ error: errorMessage }, { status: 500 })
   }
 }

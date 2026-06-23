@@ -47,8 +47,8 @@ interface IOrder {
 }
 
 export default function AdminOrderCard({ order }: { order: IOrder }) {
-  const [prevStatus, setPrevStatus] = useState<string>(order.status)
-  const [currentStatus, setCurrentStatus] = useState<string>(order.status)
+  const [prevStatus, setPrevStatus] = useState<"pending" | "out of delivery" | "delivered">(order.status)
+  const [currentStatus, setCurrentStatus] = useState<"pending" | "out of delivery" | "delivered">(order.status)
   const [loading, setLoading] = useState(false)
 
   if (order.status !== prevStatus) {
@@ -61,7 +61,7 @@ export default function AdminOrderCard({ order }: { order: IOrder }) {
     "out of delivery": "text-blue-600",
     delivered: "text-emerald-600",
   }[currentStatus]
-  const updateStatus = async (orderId: string, status: string) => {
+  const updateStatus = async (orderId: string, status: "pending" | "out of delivery" | "delivered") => {
     try {
       setLoading(true)
       setCurrentStatus(status)
@@ -161,7 +161,7 @@ export default function AdminOrderCard({ order }: { order: IOrder }) {
             disabled={loading}
             value={currentStatus}
             onChange={(e) =>
-              updateStatus(order._id!.toString(), e.target.value)
+              updateStatus(order._id!.toString(), e.target.value as "pending" | "out of delivery" | "delivered")
             }
             className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm focus:ring-2 focus:ring-emerald-500 disabled:opacity-60"
           >

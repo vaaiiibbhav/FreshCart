@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server"
+import { NextResponse } from "next/server"
 import { auth } from "@/auth"
 import { v2 as cloudinary } from "cloudinary"
 
@@ -8,7 +8,7 @@ cloudinary.config({
   api_secret: process.env.CLOUD_API_SECRET,
 })
 
-export async function POST(req: NextRequest) {
+export async function POST() {
   try {
     const session = await auth()
 

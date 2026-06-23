@@ -80,8 +80,9 @@ export async function POST(request: NextRequest) {
       password: "demoPassword123",
       role,
     })
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("Demo provisioning error:", err)
-    return NextResponse.json({ error: err.message || "Failed to provision demo user" }, { status: 500 })
+    const errorMessage = err instanceof Error ? err.message : "Failed to provision demo user"
+    return NextResponse.json({ error: errorMessage }, { status: 500 })
   }
 }

@@ -1,7 +1,6 @@
 import { Suspense } from "react"
 import connectDB from "@/app/lib/db"
 import { auth } from "@/auth"
-import { redirect } from "next/navigation"
 import UserModel from "@/models/user.model"
 import GroceryModel from "@/models/grocery.model"
 import Nav from "@/components/Nav"

@@ -24,7 +24,7 @@ export async function proxy(request: NextRequest) {
       cookies: Object.fromEntries(
         request.cookies.getAll().map((c) => [c.name, c.value])
       ),
-    } as any,
+    } as unknown as NextRequest,
     secret: process.env.AUTH_SECRET,
     secureCookie: isSecure,
   })

@@ -1,9 +1,9 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, Suspense } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import { motion, AnimatePresence } from "motion/react"
-import { Search, SlidersHorizontal, ArrowUpDown } from "lucide-react"
+import { Search, SlidersHorizontal, ArrowUpDown, Loader2 } from "lucide-react"
 import GroceryItemCard, { IGrocery } from "./GroceryItemCard"
 
 interface ShopClientProps {
@@ -30,6 +30,19 @@ const CATEGORIES = [
 ]
 
 export default function ShopClient({ groceries }: ShopClientProps) {
+  return (
+    <Suspense fallback={
+      <div className="flex flex-col items-center justify-center py-20">
+        <Loader2 className="animate-spin text-green-600" size={32} />
+        <p className="text-zinc-500 text-sm mt-2">Loading catalog...</p>
+      </div>
+    }>
+      <ShopClientContent groceries={groceries} />
+    </Suspense>
+  )
+}
+
+function ShopClientContent({ groceries }: ShopClientProps) {
   const searchParams = useSearchParams()
   const router = useRouter()
   const categoryParam = searchParams.get("category")

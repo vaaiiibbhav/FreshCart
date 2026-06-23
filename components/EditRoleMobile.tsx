@@ -110,17 +110,22 @@ export default function EditRoleMobile() {
               const Icon = role.icon
               const isSelected = selectedRole === role.id
 
+              const isDisabled = role.id === "admin" && adminExists
+
               return (
                 <motion.button
                   key={role.id}
                   variants={item}
+                  disabled={isDisabled}
                   onClick={() => setSelectedRole(role.id)}
-                  whileHover={{ y: -4 }}
-                  whileTap={{ scale: 0.96 }}
+                  whileHover={isDisabled ? undefined : { y: -4 }}
+                  whileTap={isDisabled ? undefined : { scale: 0.96 }}
                   className={`relative h-36 rounded-xl border transition-all
                     flex flex-col items-center justify-center
                     ${
-                      isSelected
+                      isDisabled
+                        ? "opacity-40 cursor-not-allowed bg-zinc-50 border-zinc-200"
+                        : isSelected
                         ? "border-[#0F2A32] bg-[#F3F7F8] shadow-md"
                         : "border-gray-200 bg-white hover:border-gray-400"
                     }`}

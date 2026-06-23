@@ -85,9 +85,10 @@ export default function LoginForm() {
         return
       }
       router.push("/")
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err)
-      setErrors({ form: err.message || "Failed to log in as demo user" })
+      const errorMessage = err instanceof Error ? err.message : "Failed to log in as demo user"
+      setErrors({ form: errorMessage })
       setLoading(false)
     }
   }

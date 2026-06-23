@@ -17,7 +17,6 @@ export async function POST(req: NextRequest) {
     const activeUserId = session.user.id
 
     const {
-      userId,
       items,
       paymentMethod,
       totalAmount,
@@ -98,10 +97,11 @@ export async function POST(req: NextRequest) {
       { message: "Order placed successfully", newOrder },
       { status: 201 }
     )
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("ORDER_CREATION_CRASH_LOG:", error)
+    const errorMessage = error instanceof Error ? error.message : "Internal server error"
     return NextResponse.json(
-      { error: error.message },
+      { error: errorMessage },
       { status: 500 }
     )
   }

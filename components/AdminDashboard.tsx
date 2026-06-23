@@ -73,9 +73,9 @@ const CATEGORIES = [
   "Others",
 ]
 
-const UNITS = [1, 2, 5, 10]
-
 export default function AdminDashboard() {
+  const UNITS = [1, 2, 5, 10]
+
   const [orders, setOrders] = useState<IOrder[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<"all" | "pending" | "out of delivery" | "delivered" | "add-product">("all")
@@ -96,9 +96,15 @@ export default function AdminDashboard() {
       } else {
         alert(res.data.error || "Failed to reset sandbox")
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err)
-      alert(err.response?.data?.error || err.message || "Failed to reset sandbox")
+      let message = "Failed to reset sandbox"
+      if (axios.isAxiosError(err)) {
+        message = err.response?.data?.error || message
+      } else if (err instanceof Error) {
+        message = err.message
+      }
+      alert(message)
     } finally {
       setResetting(false)
     }
@@ -123,7 +129,7 @@ export default function AdminDashboard() {
       setLoading(true)
       const res = await axios.get("/api/orders")
       setOrders(Array.isArray(res.data?.orders) ? res.data.orders : [])
-    } catch (err) {
+    } catch (err: unknown) {
       console.error("Fetch orders error:", err)
     } finally {
       setLoading(false)
@@ -199,9 +205,9 @@ export default function AdminDashboard() {
     return diffDays <= 7
   }).length
 
-  const getDailyEarnings = () => {
+  const getDailyEarnings = (): { label: string; value: number; percentage: number }[] => {
     const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
-    const data = []
+    const data: { label: string; value: number }[] = []
     const now = new Date()
     for (let i = 6; i >= 0; i--) {
       const d = new Date()
@@ -224,8 +230,8 @@ export default function AdminDashboard() {
     }))
   }
 
-  const getWeeklySales = () => {
-    const data = []
+  const getWeeklySales = (): { label: string; value: number; percentage: number }[] => {
+    const data: { label: string; value: number }[] = []
     const now = new Date()
     for (let i = 3; i >= 0; i--) {
       const start = new Date()
@@ -247,12 +253,11 @@ export default function AdminDashboard() {
     }))
   }
 
-  const getGrossProfitProgress = () => {
+  const getGrossProfitProgress = (): { label: string; value: number; percentage: number }[] => {
     const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
-    const data = []
     const now = new Date()
     let cumulative = 0
-    const dailyValues = []
+    const dailyValues: { label: string; profit: number }[] = []
     for (let i = 6; i >= 0; i--) {
       const d = new Date()
       d.setDate(now.getDate() - i)

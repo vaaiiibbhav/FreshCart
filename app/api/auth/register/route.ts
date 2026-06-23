@@ -7,7 +7,7 @@ export async function POST(req : NextRequest){
   try{
     await connectDB()
     const { name, email, password, role, mobile } = await req.json()
-    const queryList: any[] = [{ email }]
+    const queryList: Record<string, string>[] = [{ email }]
     if (mobile) {
       queryList.push({ mobile })
     }
